@@ -1,0 +1,18 @@
+[package]
+name = "athens_backend"
+version = "0.1.0"
+authors = ["Maksim <maksim.levental@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+rocket = "0.3.16"
+rocket_codegen = "0.3.16"
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+ws = "0.7.8"
+
+[dependencies.rocket_contrib]
+version = "*"
+default-features = false
+features = ["json"]
