@@ -7,9 +7,16 @@ extern crate rocket_contrib;
 #[macro_use]
 extern crate serde_derive;
 extern crate ws;
+extern crate unqlite;
+extern crate bincode;
 
+use unqlite::{UnQLite, Config, KV, Cursor};
 use rocket_contrib::{Json, Value};
 use std::io;
+use std::str;
+use std::fmt;
+
+use bincode::{serialize, deserialize};
 use std::path::{Path, PathBuf};
 use rocket::State;
 use std::collections::HashMap;
@@ -18,17 +25,11 @@ use std::thread;
 use ws::listen;
 use rocket::response::NamedFile;
 
-// The type to represent the ID of a message.
-type ID = usize;
+mod face;
 
-// We're going to store all of the messages here. No need for a DB.
-type MessageMap = Mutex<HashMap<ID, String>>;
+type ID = String;
+type UnQLiteConn = Mutex<UnQLite>;
 
-#[derive(Serialize, Deserialize)]
-struct Message {
-    id: Option<ID>,
-    contents: String,
-}
 
 #[get("/")]
 fn index() -> io::Result<NamedFile> {
@@ -40,60 +41,41 @@ fn files(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("static/").join(file)).ok()
 }
 
-// TODO: This example can be improved by using `route` with multiple HTTP verbs.
-#[post("/<id>", format = "application/json", data = "<message>")]
-fn new(id: ID, message: Json<Message>, map: State<MessageMap>) -> Json<Value> {
+#[post("/face/<id>", format = "application/json", data = "<face_json>")]
+fn new(id: ID, face_json: Json<face::Face>, map: State<UnQLiteConn>) -> Json<Value> {
     let mut hashmap = map.lock().expect("map lock.");
-    if hashmap.contains_key(&id) {
-        Json(json!({
+    match hashmap.kv_store(id, &face_json.as_vec_u8()) {
+        Ok(()) => Json(json!({ "status": "ok" })),
+        Err(e) => Json(json!({
             "status": "error",
-            "reason": "ID exists. Try put."
+            "reason": format!("{}", e)
         }))
-    } else {
-        hashmap.insert(id, message.0.contents);
-        Json(json!({ "status": "ok" }))
     }
 }
 
-#[put("/<id>", format = "application/json", data = "<message>")]
-fn update(id: ID, message: Json<Message>, map: State<MessageMap>) -> Option<Json<Value>> {
-    let mut hashmap = map.lock().unwrap();
-    if hashmap.contains_key(&id) {
-        hashmap.insert(id, message.0.contents);
-        Some(Json(json!({ "status": "ok" })))
-    } else {
-        None
-    }
-}
-
-#[get("/<id>", format = "application/json")]
-fn get(id: ID, map: State<MessageMap>) -> Option<Json<Message>> {
+#[get("/face/<id>", format = "application/json")]
+fn get(id: ID, map: State<UnQLiteConn>) -> Option<Json<face::Face>> {
     let hashmap = map.lock().unwrap();
-    hashmap.get(&id).map(|contents| {
-        Json(Message {
-            id: Some(id),
-            contents: contents.clone(),
-        })
-    })
+    match hashmap.kv_fetch(&id) {
+        Ok(contents_as_vec) => {
+            let contents_as_face = face::Face::from_vec_u8(&contents_as_vec);
+            Some(Json(contents_as_face))
+        }
+        Err(e) => None
+    }
 }
+
 
 #[catch(404)]
 fn not_found() -> Json<Value> {
     Json(json!({
-        "status": "error",
+        "status": "error-404",
         "reason": "Resource was not found."
     }))
 }
 
-fn rocket() -> rocket::Rocket {
-    rocket::ignite()
-        .mount("/message", routes![new, update, get])
-        .mount("/static", routes![index, files])
-        .catch(catchers![not_found])
-        .manage(Mutex::new(HashMap::<ID, String>::new()))
-}
 
-fn main() {
+fn websocket() {
     thread::spawn(|| {
         listen("127.0.0.1:3012", |out| {
             move |msg| {
@@ -102,5 +84,17 @@ fn main() {
             }
         })
     });
+}
+
+fn rocket() -> rocket::Rocket {
+    websocket();
+    rocket::ignite()
+        .mount("/", routes![new, get])
+        .mount("/static", routes![index, files])
+        .catch(catchers![not_found])
+        .manage(Mutex::new(UnQLite::create("test.db")))
+}
+
+fn main() {
     rocket().launch();
 }
