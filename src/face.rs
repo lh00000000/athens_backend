@@ -66,7 +66,7 @@ pub struct PoseEstimate {
     Tz: f64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Face {
     AU_c: AuC,
     AU_r: AuR,
@@ -87,7 +87,6 @@ impl Face {
         return serialize(&self).unwrap();
     }
     pub fn from_vec_u8(v: &[u8]) -> Face {
-        return deserialize(v).unwrap()
+        return deserialize(v).unwrap();
     }
-
 }
