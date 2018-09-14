@@ -1,6 +1,6 @@
-use bincode::{serialize, deserialize};
+use std::fmt;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AuC {
     AU01: f64,
     AU02: f64,
@@ -22,7 +22,7 @@ pub struct AuC {
     AU45: f64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AuR {
     AU01: f64,
     AU02: f64,
@@ -43,20 +43,20 @@ pub struct AuR {
     AU45: f64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GazeAngle {
     x: f64,
     y: f64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GazeDirection0 {
     x: f64,
     y: f64,
     z: f64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PoseEstimate {
     Rx: f64,
     Ry: f64,
@@ -70,7 +70,7 @@ pub struct PoseEstimate {
 pub struct Face {
     AU_c: AuC,
     AU_r: AuR,
-    face_id: i64,
+    pub face_id: i64,
     frame_num: i64,
     gazeDirection0: GazeDirection0,
     gazeDirection1: GazeDirection0,
@@ -78,15 +78,84 @@ pub struct Face {
     landmark_confidence: f64,
     landmark_detection_success: bool,
     pose_estimate: PoseEstimate,
-    time_stamp: f64,
+    pub time_stamp: f64,
+}
+
+#[derive(Hash, Eq, PartialEq, Debug, Clone)]
+pub enum Personality {
+    Open,
+    Conscientious,
+    Extroverted,
+    Agreeable,
+    Neurotic
 }
 
 
-impl Face {
-    pub fn as_vec_u8(&self) -> Vec<u8> {
-        return serialize(&self).unwrap();
+impl fmt::Display for Personality {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
-    pub fn from_vec_u8(v: &[u8]) -> Face {
-        return deserialize(v).unwrap();
+}
+
+#[derive(Hash, Eq, PartialEq, Debug)]
+pub enum Emotion {
+    Happiness,
+    Sadness,
+    Surprise,
+    Fear,
+    Anger,
+    Disgust,
+    Contempt,
+}
+
+impl fmt::Display for Emotion {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Face {
+    pub fn personalities(&self) -> Vec<Personality> {
+
+        let mut personalities = Vec::new();
+
+        let emotion_personality_map = hashmap! {
+            Emotion::Happiness => Personality::Open,
+
+            Emotion::Sadness => Personality::Conscientious,
+            Emotion::Disgust => Personality::Conscientious,
+
+            Emotion::Surprise => Personality::Extroverted,
+
+            Emotion::Fear => Personality::Agreeable,
+
+            Emotion::Anger => Personality::Neurotic,
+        };
+
+        if self.AU_c.AU06 + self.AU_c.AU12 > 1.0 {
+            personalities.push(emotion_personality_map.get(&Emotion::Happiness).unwrap().clone())
+        }
+
+        if self.AU_c.AU01 + self.AU_c.AU04 + self.AU_c.AU15 > 2.0 {
+            personalities.push(emotion_personality_map.get(&Emotion::Sadness).unwrap().clone())
+        }
+
+        if self.AU_c.AU01 + self.AU_c.AU02 + self.AU_c.AU26 > 2.0 {
+            personalities.push(emotion_personality_map.get(&Emotion::Surprise).unwrap().clone())
+        }
+
+        if self.AU_c.AU01 + self.AU_c.AU02 + self.AU_c.AU04 + self.AU_c.AU05 + self.AU_c.AU07 + self.AU_c.AU20 + self.AU_c.AU26 > 6.0 {
+            personalities.push(emotion_personality_map.get(&Emotion::Fear).unwrap().clone())
+        }
+
+        if self.AU_c.AU04 + self.AU_c.AU05 + self.AU_c.AU07 + self.AU_c.AU23 > 3.0 {
+            personalities.push(emotion_personality_map.get(&Emotion::Anger).unwrap().clone())
+        }
+
+        if self.AU_c.AU09 + self.AU_c.AU15 > 1.0 {
+            personalities.push(emotion_personality_map.get(&Emotion::Disgust).unwrap().clone())
+        }
+
+        return personalities;
     }
 }
