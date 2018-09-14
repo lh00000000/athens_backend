@@ -1,16 +1,28 @@
 use rusqlite::{Connection, Error as RusqliteError};
 use std::collections::HashMap;
 
-use super::face::Face;
+use super::face::{Face, FaceId};
+use rusqlite::types::FromSql;
+use rusqlite::types::ValueRef;
+use rusqlite::types::FromSqlResult;
 
-#[derive(Debug)]
-pub struct FaceEvent {
-    id: i32,
-    face_id: i32,
-    time_stamp: f32,
+#[derive(Debug, Serialize, Deserialize)]
+struct ff64(f64);
+
+impl FromSql for ff64 {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        Ok(ff64(value.as_f64().unwrap()))
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FaceEvent {
+    id: i32,
+    face_id: FaceId,
+    time_stamp: ff64
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Personality {
     id: i32,
     personality: String,
@@ -102,6 +114,22 @@ pub fn get_personality_stats(conn: &Connection) -> HashMap<String, i32> {
     }
 
     return personalities;
+}
+
+
+
+pub fn get_face(conn: &Connection, id: FaceId) -> FaceEvent {
+    let mut stmt = conn.prepare("SELECT * FROM face_event WHERE id = ?1").unwrap();
+    let row = stmt.query_map(&[&id], |row| {
+        FaceEvent {
+            id: row.get(0),
+            face_id: row.get(1),
+            time_stamp: row.get(2),
+        }
+    }).unwrap().next();
+    let row = row.unwrap();
+    let face_event = row.unwrap();
+    return face_event
 }
 
 pub fn insert_face(conn: &Connection, face: Face) {

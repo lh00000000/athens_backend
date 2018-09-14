@@ -37,7 +37,6 @@ struct Config {
 }
 
 //
-type ID = String;
 type ServerConfig = Arc<Mutex<Config>>;
 
 #[get("/")]
@@ -50,17 +49,17 @@ fn files(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("static/").join(file)).ok()
 }
 
-#[post("/face/<id>", format = "application/json", data = "<face_json>")]
-fn new(id: ID, face_json: Json<face::Face>, conf: State<ServerConfig>) -> Json<Value> {
+#[post("/face", format = "application/json", data = "<face_json>")]
+fn new(face_json: Json<face::Face>, conf: State<ServerConfig>) -> Json<Value> {
     let db_conn = &conf.lock().expect("get conf").db_conn;
+    db::insert_face(db_conn, face_json.into_inner());
     Json(json!({ "status": "ok" }))
 }
 
 #[get("/face/<id>", format = "application/json")]
-fn get(id: ID, conf: State<ServerConfig>) -> Option<Json<face::Face>> {
-    let conf = conf.lock().unwrap();
-//    Some(face::Face{})
-    None
+fn get(id: face::FaceId, conf: State<ServerConfig>) -> Option<Json<db::FaceEvent>> {
+    let db_conn = &conf.lock().expect("get conf").db_conn;
+    Some(Json(db::get_face(db_conn, id)))
 }
 
 
@@ -102,9 +101,11 @@ fn main() {
 
     websocket(Arc::clone(&config));
 
+
     rocket::ignite()
-//        .mount("/", routes![new, get])
+        .mount("/", routes![new, get])
         .mount("/static", routes![index, files])
         .catch(catchers![not_found])
-        .manage(Arc::clone(&config));
+        .manage(Arc::clone(&config))
+        .launch();
 }

@@ -66,11 +66,14 @@ pub struct PoseEstimate {
     Tz: f64,
 }
 
+
+pub type FaceId = i64;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Face {
     AU_c: AuC,
     AU_r: AuR,
-    pub face_id: i64,
+    pub face_id: FaceId,
     frame_num: i64,
     gazeDirection0: GazeDirection0,
     gazeDirection1: GazeDirection0,
