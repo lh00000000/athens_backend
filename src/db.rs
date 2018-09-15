@@ -139,6 +139,7 @@ pub fn insert_face(conn: &Connection, face: Face) -> bool {
     );
     match face.personality() {
         Some(p) => {
+            println!("{:?}", p);
             conn.execute(
                 "UPDATE personality SET count = count + 1 WHERE personality_type = ?1",
                 &[&p.to_string()],
