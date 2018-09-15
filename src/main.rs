@@ -27,6 +27,7 @@ use rocket::response::NamedFile;
 
 use rusqlite::{Connection, Error as RusqliteError};
 use rocket::State;
+use std::collections::HashSet;
 
 mod face;
 mod db;
@@ -34,6 +35,7 @@ mod db;
 
 struct Config {
     db_conn: Connection,
+    seen_faces: HashSet<face::FaceId>,
 }
 
 //
@@ -51,8 +53,15 @@ fn files(file: PathBuf) -> Option<NamedFile> {
 
 #[post("/face", format = "application/json", data = "<face_json>")]
 fn new(face_json: Json<face::Face>, conf: State<ServerConfig>) -> Json<Value> {
-    let db_conn = &conf.lock().expect("get conf").db_conn;
-    db::insert_face(db_conn, face_json.into_inner());
+    let conf = &mut conf.lock().expect("get conf");
+    let face = face_json.into_inner();
+    let face_id = face.face_id.clone();
+    if !conf.seen_faces.contains(&face.face_id) {
+        match db::insert_face(&conf.db_conn, face) {
+            true => { conf.seen_faces.insert(face_id); }
+            false => {}
+        }
+    }
     Json(json!({ "status": "ok" }))
 }
 
@@ -88,7 +97,7 @@ fn websocket(conf: ServerConfig) {
 }
 
 fn main() {
-    let conn = Connection::open("./test.db").unwrap();
+    let conn = Connection::open("./face.db").unwrap();
     db::create_db(&conn);
     let personality_stats = db::get_personality_stats(&conn);
     for stat in personality_stats {
@@ -97,6 +106,7 @@ fn main() {
 
     let config = Arc::new(Mutex::new(Config {
         db_conn: conn,
+        seen_faces: HashSet::new(),
     }));
 
     websocket(Arc::clone(&config));

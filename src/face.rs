@@ -90,7 +90,7 @@ pub enum Personality {
     Conscientious,
     Extroverted,
     Agreeable,
-    Neurotic
+    Neurotic,
 }
 
 
@@ -118,47 +118,39 @@ impl fmt::Display for Emotion {
 }
 
 impl Face {
-    pub fn personalities(&self) -> Vec<Personality> {
-
-        let mut personalities = Vec::new();
-
+    pub fn personality(&self) -> Option<Personality> {
         let emotion_personality_map = hashmap! {
             Emotion::Happiness => Personality::Open,
 
-            Emotion::Sadness => Personality::Conscientious,
             Emotion::Disgust => Personality::Conscientious,
 
             Emotion::Surprise => Personality::Extroverted,
 
             Emotion::Fear => Personality::Agreeable,
+            Emotion::Sadness => Personality::Agreeable,
 
             Emotion::Anger => Personality::Neurotic,
+            Emotion::Contempt => Personality::Neurotic,
         };
 
+        println!("{:?}",self.AU_c);
+
         if self.AU_c.AU06 + self.AU_c.AU12 > 1.0 {
-            personalities.push(emotion_personality_map.get(&Emotion::Happiness).unwrap().clone())
+            return Some(emotion_personality_map.get(&Emotion::Happiness).unwrap().clone());
+        } else if self.AU_c.AU01 + self.AU_c.AU04 + self.AU_c.AU15 > 2.0 {
+            return Some(emotion_personality_map.get(&Emotion::Sadness).unwrap().clone());
+        } else if self.AU_c.AU01 + self.AU_c.AU02 + self.AU_c.AU26 > 2.0 {
+            return Some(emotion_personality_map.get(&Emotion::Surprise).unwrap().clone());
+        } else if self.AU_c.AU01 + self.AU_c.AU02 + self.AU_c.AU04 + self.AU_c.AU05 + self.AU_c.AU07 + self.AU_c.AU20 + self.AU_c.AU26 > 6.0 {
+            return Some(emotion_personality_map.get(&Emotion::Fear).unwrap().clone());
+        } else if self.AU_c.AU04 + self.AU_c.AU05 + self.AU_c.AU07 + self.AU_c.AU23 > 3.0 {
+            return Some(emotion_personality_map.get(&Emotion::Anger).unwrap().clone());
+        } else if self.AU_c.AU12 + self.AU_c.AU14 > 1.0 {
+            return Some(emotion_personality_map.get(&Emotion::Contempt).unwrap().clone());
+        } else if self.AU_c.AU09 + self.AU_c.AU15 > 1.0 {
+            return Some(emotion_personality_map.get(&Emotion::Disgust).unwrap().clone());
         }
 
-        if self.AU_c.AU01 + self.AU_c.AU04 + self.AU_c.AU15 > 2.0 {
-            personalities.push(emotion_personality_map.get(&Emotion::Sadness).unwrap().clone())
-        }
-
-        if self.AU_c.AU01 + self.AU_c.AU02 + self.AU_c.AU26 > 2.0 {
-            personalities.push(emotion_personality_map.get(&Emotion::Surprise).unwrap().clone())
-        }
-
-        if self.AU_c.AU01 + self.AU_c.AU02 + self.AU_c.AU04 + self.AU_c.AU05 + self.AU_c.AU07 + self.AU_c.AU20 + self.AU_c.AU26 > 6.0 {
-            personalities.push(emotion_personality_map.get(&Emotion::Fear).unwrap().clone())
-        }
-
-        if self.AU_c.AU04 + self.AU_c.AU05 + self.AU_c.AU07 + self.AU_c.AU23 > 3.0 {
-            personalities.push(emotion_personality_map.get(&Emotion::Anger).unwrap().clone())
-        }
-
-        if self.AU_c.AU09 + self.AU_c.AU15 > 1.0 {
-            personalities.push(emotion_personality_map.get(&Emotion::Disgust).unwrap().clone())
-        }
-
-        return personalities;
+        None
     }
 }

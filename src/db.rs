@@ -5,6 +5,7 @@ use super::face::{Face, FaceId};
 use rusqlite::types::FromSql;
 use rusqlite::types::ValueRef;
 use rusqlite::types::FromSqlResult;
+use std::collections::HashSet;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ff64(f64);
@@ -19,7 +20,7 @@ impl FromSql for ff64 {
 pub struct FaceEvent {
     id: i32,
     face_id: FaceId,
-    time_stamp: ff64
+    time_stamp: ff64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -117,7 +118,6 @@ pub fn get_personality_stats(conn: &Connection) -> HashMap<String, i32> {
 }
 
 
-
 pub fn get_face(conn: &Connection, id: FaceId) -> FaceEvent {
     let mut stmt = conn.prepare("SELECT * FROM face_event WHERE id = ?1").unwrap();
     let row = stmt.query_map(&[&id], |row| {
@@ -129,22 +129,33 @@ pub fn get_face(conn: &Connection, id: FaceId) -> FaceEvent {
     }).unwrap().next();
     let row = row.unwrap();
     let face_event = row.unwrap();
-    return face_event
+    return face_event;
 }
 
-pub fn insert_face(conn: &Connection, face: Face) {
-    let mut personalities_ids: Vec<i32> = Vec::new();
-    for personality in face.personalities() {
-        conn.execute("UPDATE personality SET count = count + 1 WHERE personality_type = ?1", &[&personality.to_string()]);
-        conn.query_row(
-            "SELECT id FROM personality WHERE personality_type = ?1",
-            &[&personality.to_string()],
-            |row| personalities_ids.push(row.get(0))
-        );
-    }
-
-    conn.execute("INSERT INTO face_event (face_id, time_stamp) VALUES (?1, ?2)", &[&face.face_id, &face.time_stamp]);
-    for personality_id in personalities_ids {
-        conn.execute("INSERT INTO face_personality (face_id, personality_id) VALUES (?1, ?2)", &[&face.face_id, &personality_id]);
+pub fn insert_face(conn: &Connection, face: Face) -> bool {
+    conn.execute(
+        "INSERT INTO face_event (face_id, time_stamp) VALUES (?1, ?2)",
+        &[&face.face_id, &face.time_stamp],
+    );
+    match face.personality() {
+        Some(p) => {
+            conn.execute(
+                "UPDATE personality SET count = count + 1 WHERE personality_type = ?1",
+                &[&p.to_string()],
+            );
+            conn.query_row(
+                "SELECT id FROM personality WHERE personality_type = ?1",
+                &[&p.to_string()],
+                |row| {
+                    let row_id: i64 = row.get(0);
+                    conn.execute(
+                        "INSERT INTO face_personality (face_id, personality_id) VALUES (?1, ?2)",
+                        &[&face.face_id, &row_id],
+                    );
+                },
+            );
+            true
+        }
+        None => false
     }
 }
