@@ -102,3 +102,13 @@ Accept: application/json
 
 ###
 
+GET http://localhost:8000/api/email?from_name=max&access_token=bob&personality=neurotic
+Content-Type: application/json
+Accept: application/json
+
+###
+GET http://localhost:8000/api/essay/bob
+Content-Type: application/json
+Accept: application/json
+
+###

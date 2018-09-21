@@ -1,5 +1,4 @@
-use rocket_contrib::{Json, Value};
-use std::io;
+use std::io::Read;
 
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, Arc};
@@ -9,22 +8,27 @@ use rocket::response::NamedFile;
 
 use rusqlite::{Connection, Error as RusqliteError};
 use rocket::State;
+use rocket_contrib::{Json, Value};
+use rocket::http::RawStr;
 
 use super::face;
 use super::db;
+use super::email;
 
 use super::settings::BackendState;
 
 type ServerConfig = Arc<Mutex<BackendState>>;
 
 #[get("/")]
-fn index() -> io::Result<NamedFile> {
-    NamedFile::open("static/index.html")
+fn home() -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/home.html")).ok()
 }
 
-#[get("/<file..>")]
-fn files(file: PathBuf) -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/").join(file)).ok()
+#[get("/essay/<personality>")]
+fn essay(personality: &RawStr) -> Json<Value> {
+    let mut essay = String::new();
+    NamedFile::open(Path::new("static/essay.html")).unwrap().read_to_string(&mut essay);
+    Json(json!([essay]))
 }
 
 #[post("/face", format = "application/json", data = "<face_json>")]
@@ -41,10 +45,30 @@ fn new(face_json: Json<face::Face>, conf: State<ServerConfig>) -> Json<Value> {
     Json(json!({ "status": "ok" }))
 }
 
-#[get("/face/<id>", format = "application/json")]
-fn get(id: face::FaceId, conf: State<ServerConfig>) -> Option<Json<db::FaceEvent>> {
-    let db_conn = &conf.lock().expect("get conf").db_conn;
-    Some(Json(db::get_face(db_conn, id)))
+//#[get("/face/<id>", format = "application/json")]
+//fn get(id: face::FaceId, conf: State<ServerConfig>) -> Option<Json<db::FaceEvent>> {
+//    let db_conn = &conf.lock().expect("get conf").db_conn;
+//    Some(Json(db::get_face(db_conn, id)))
+//}
+
+#[derive(FromForm, Debug)]
+struct Consent {
+    from_name: String,
+    access_token: String,
+    personality: String,
+}
+
+#[get("/email?<consent>", format = "application/json")]
+fn emails(consent: Consent, conf: State<ServerConfig>) -> Json<Value> {
+    println!("{:?}", consent);
+    for email in email::get_email_contacts(&consent.access_token) {
+        email::send_email(
+            &email,
+            &consent.from_name,
+            &consent.personality,
+        )
+    }
+    Json(json!({ "status": "ok" }))
 }
 
 
@@ -76,8 +100,8 @@ pub fn start_api(conf: ServerConfig) {
     websocket(Arc::clone(&conf));
 
     rocket::ignite()
-        .mount("/", routes![new, get])
-        .mount("/static", routes![index, files])
+        .mount("/", routes![home])
+        .mount("/api", routes![new, essay, emails])
         .catch(catchers![not_found])
         .manage(Arc::clone(&conf))
         .launch();

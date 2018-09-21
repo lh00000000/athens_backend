@@ -5,6 +5,7 @@
 
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
+#![feature(custom_derive)]
 extern crate rocket;
 #[macro_use]
 extern crate rocket_contrib;
@@ -22,6 +23,10 @@ extern crate simplelog;
 extern crate config;
 #[macro_use]
 extern crate lazy_static;
+extern crate oauth2;
+extern crate reqwest;
+extern crate select;
+extern crate url;
 
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -32,7 +37,7 @@ use rusqlite::Connection;
 
 mod face;
 mod db;
-mod mail;
+mod email;
 mod api;
 mod settings;
 mod logger;
@@ -52,5 +57,10 @@ fn main() {
 
     logger::set_logging();
 
-    mail::send_email("maksim.levental@gmail.com", "maks", "neurotic");
+//    email::send_email("maksim.levental@gmail.com", "maks", "neurotic");
+//    let token = email::get_access_token();
+//    for email in email::get_email_contacts(&token.access_token) {
+//        println!("{}", email)
+//    }
+    api::start_api(config)
 }
