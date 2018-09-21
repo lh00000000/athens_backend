@@ -1,0 +1,5 @@
+sendgrid_api_key = ""
+debug = true
+secret_key = ""
+domain = "afiction.org"
+email_subject = "How does it feel to be a fiction? Πώς αισθάνεται να είναι μυθοπλασία?"

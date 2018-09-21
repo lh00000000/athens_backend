@@ -2,3 +2,6 @@
 **/*.rs.bk
 /.idea
 *.db
+.env
+settings.toml
+*.log
