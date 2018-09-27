@@ -3,76 +3,81 @@
 <head>
     <meta charset="utf-8">
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <title>Hello Analytics Reporting API V4</title>
-    <meta name="google-signin-client_id" content="200863470173-hn5o73tfu2v455v98vc861hovsu8eqcq.apps.googleusercontent.com">
+
+    <meta name="google-signin-client_id"
+          content="200863470173-hn5o73tfu2v455v98vc861hovsu8eqcq.apps.googleusercontent.com">
     <meta name="google-signin-scope" content="https://www.googleapis.com/auth/analytics.readonly">
 </head>
 <body>
 
-<h1>Hello Analytics Reporting API V4</h1>
-
 <!-- The Sign-in button. This will run `queryReports()` on success. -->
 <p class="g-signin2" data-onsuccess="queryReports"></p>
-
-<!-- The API response will be printed here. -->
-<textarea cols="80" rows="20" id="query-output"></textarea>
+<button onclick="handleClientLoad()">load map</button>
+<div id="regions_div" style="width: 900px; height: 500px;"></div>
 
 <script>
     // Replace with your view ID.
-    var VIEW_ID = '181843413';
+    function handleClientLoad() {
 
-    // Query the API and print the results to the page.
-    function queryReports() {
-        gapi.client.request({
-            path: '/v4/reports:batchGet',
-            root: 'https://analyticsreporting.googleapis.com/',
-            method: 'POST',
-            body: {
-                reportRequests: [
-                    {
-                        viewId: VIEW_ID,
-                        dateRanges: [
-                            {
-                                startDate: '7daysAgo',
-                                endDate: 'today'
-                            }
-                        ],
-                        metrics: [
-                            {
-                                expression: 'ga:sessions'
-                            }
-                        ]
-                    }
-                ]
-            }
-        }).then(displayResults, console.error.bind(console));
-    }
+        var VIEW_ID = '181843413';
 
-    var timeline = new gapi.analytics.googleCharts.DataChart({
-        query: {
-            'ids': 'ga:1234',
-            'dimensions': 'ga:country',
-            'metrics': 'ga:sessions',
-            'start-date': '30daysAgo',
-            'end-date': 'yesterday',
-        },
-        chart: {
-            type: 'GEO',
-            container: 'timeline',
-            options: {
-                region: '155', // Western Europe
-                displayMode: 'markers'
-            }
+        // Query the API and print the results to the page.
+        function queryReports() {
+            gapi.client.request({
+                path: '/v4/reports:batchGet',
+                root: 'https://analyticsreporting.googleapis.com/',
+                method: 'POST',
+                body: {
+                    reportRequests: [
+                        {
+                            viewId: VIEW_ID,
+                            dateRanges: [
+                                {
+                                    startDate: '1000daysAgo',
+                                    endDate: 'today'
+                                }
+                            ],
+                            dimensions: [
+                                {
+                                    name: 'ga:country'
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }).then(drawRegionsMap, console.error.bind(console));
         }
-    });
 
-    function displayResults(response) {
-        var formattedJson = JSON.stringify(response.result, null, 2);
-        document.getElementById('query-output').value = formattedJson;
+        // function displayResults(response) {
+        //     var formattedJson = JSON.stringify(response.result, null, 2);
+        //     document.getElementById('query-output').value = formattedJson;
+        // }
+
+        google.charts.load('current', {
+            'packages': ['geochart'],
+            // Note: you will need to get a mapsApiKey for your project.
+            // See: https://developers.google.com/chart/interactive/docs/basic_load_libs#load-settings
+            'mapsApiKey': ''
+        });
+
+        // google.charts.setOnLoadCallback(drawRegionsMap);
+
+        function drawRegionsMap(response) {
+            var countries = response.result.reports[0].data.rows.map(c => [c.dimensions[0], parseInt(c.metrics[0].values[0])]);
+            var data = google.visualization.arrayToDataTable([['Country', 'Popularity']].concat(countries));
+
+            var options = {};
+
+            var chart = new google.visualization.GeoChart(document.getElementById('regions_div'));
+
+            chart.draw(data, options);
+        }
+
+        queryReports();
+
     }
-</script>
 
-<!-- Load the JavaScript API client and Sign-in library. -->
+</script>
 <script src="https://apis.google.com/js/client:platform.js"></script>
 
 </body>

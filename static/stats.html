@@ -19,7 +19,7 @@
 
             function connect() {
                 disconnect();
-                var wsUri = (window.location.protocol == 'https:' && 'wss://' || 'ws://') + window.location.hostname + ':' + 3012 + '/ws/';
+                var wsUri = (window.location.protocol === 'https:' && 'wss://' || 'ws://') + window.location.hostname + ':' + 3012 + '/ws/';
                 // console.log(wsUri);
                 conn = new WebSocket(wsUri);
                 conn.onopen = async function () {
