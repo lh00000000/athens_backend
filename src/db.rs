@@ -5,8 +5,8 @@ use super::face::{Face, FaceId};
 use rusqlite::types::FromSql;
 use rusqlite::types::ValueRef;
 use rusqlite::types::FromSqlResult;
-use std::collections::HashSet;
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize)]
 struct ff64(f64);
 
@@ -132,6 +132,17 @@ pub fn get_face(conn: &Connection, id: FaceId) -> FaceEvent {
     return face_event;
 }
 
+pub fn increment_personality(conn: &Connection, personality: String) {
+    println!("incrementing personality {}", personality);
+    match conn.execute(
+        "UPDATE personality SET count = count + 1 WHERE personality_type = ?1",
+        &[&personality],
+    ) {
+        Ok(_) => (),
+        Err(e) => println!("{:?}", e)
+    }
+}
+
 pub fn insert_face(conn: &Connection, face: Face) -> bool {
     conn.execute(
         "INSERT INTO face_event (face_id, time_stamp) VALUES (?1, ?2)",
@@ -139,11 +150,7 @@ pub fn insert_face(conn: &Connection, face: Face) -> bool {
     );
     match face.personality() {
         Some(p) => {
-            println!("{:?}", p);
-            conn.execute(
-                "UPDATE personality SET count = count + 1 WHERE personality_type = ?1",
-                &[&p.to_string()],
-            );
+            increment_personality(conn, p.to_string());
             conn.query_row(
                 "SELECT id FROM personality WHERE personality_type = ?1",
                 &[&p.to_string()],

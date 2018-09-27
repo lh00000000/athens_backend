@@ -1,12 +1,11 @@
 use std::io::Read;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::{Mutex, Arc};
 use std::thread;
 use ws::listen;
 use rocket::response::NamedFile;
 
-use rusqlite::{Connection, Error as RusqliteError};
 use rocket::State;
 use rocket_contrib::{Json, Value};
 use rocket::http::RawStr;
@@ -20,19 +19,47 @@ use super::settings::BackendState;
 type ServerConfig = Arc<Mutex<BackendState>>;
 
 #[get("/")]
-fn home() -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/home.html")).ok()
+fn index() -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/index.html")).ok()
 }
 
+#[get("/map")]
+fn map() -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/map.html")).ok()
+}
+#[get("/stats")]
+fn stats() -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/stats.html")).ok()
+}
+
+
 #[get("/essay/<personality>")]
-fn essay(personality: &RawStr) -> Json<Value> {
+fn essay(personality: &RawStr, conf: State<ServerConfig>) -> Json<Value> {
+    let conf = &mut conf.lock().expect("get conf");
+
+    db::increment_personality(&conf.db_conn, personality.to_string());
+
+    let personality_stats = db::get_personality_stats(&conf.db_conn);
+    for stat in personality_stats {
+        println!("{} {}", stat.0, stat.1);
+    }
+    println!();
+
     let mut essay = String::new();
-    NamedFile::open(Path::new("static/essay.html")).unwrap().read_to_string(&mut essay);
+    match NamedFile::open(Path::new(&format!("static/essays/{}.html", personality))) {
+        Ok(mut file) => {
+            file.read_to_string(&mut essay);
+        }
+        Err(e) => {
+            error!("{:?}", e);
+            NamedFile::open(Path::new("static/essays/Open.html")).unwrap().read_to_string(&mut essay);
+        }
+    }
     Json(json!([essay]))
 }
 
 #[post("/face", format = "application/json", data = "<face_json>")]
-fn new(face_json: Json<face::Face>, conf: State<ServerConfig>) -> Json<Value> {
+fn new_face(face_json: Json<face::Face>, conf: State<ServerConfig>) -> Json<Value> {
     let conf = &mut conf.lock().expect("get conf");
     let face = face_json.into_inner();
     let face_id = face.face_id.clone();
@@ -52,22 +79,16 @@ fn new(face_json: Json<face::Face>, conf: State<ServerConfig>) -> Json<Value> {
 //}
 
 #[derive(FromForm, Debug)]
-struct Consent {
-    from_name: String,
-    access_token: String,
-    personality: String,
+pub struct Consent {
+    pub from_name: String,
+    pub access_token: String,
+    pub personality: String,
 }
 
 #[get("/email?<consent>", format = "application/json")]
 fn emails(consent: Consent, conf: State<ServerConfig>) -> Json<Value> {
     println!("{:?}", consent);
-    for email in email::get_email_contacts(&consent.access_token) {
-        email::send_email(
-            &email,
-            &consent.from_name,
-            &consent.personality,
-        )
-    }
+    email::send_emails(&consent);
     Json(json!({ "status": "ok" }))
 }
 
@@ -100,8 +121,8 @@ pub fn start_api(conf: ServerConfig) {
     websocket(Arc::clone(&conf));
 
     rocket::ignite()
-        .mount("/", routes![home])
-        .mount("/api", routes![new, essay, emails])
+        .mount("/", routes![index, stats, map])
+        .mount("/api", routes![new_face, essay, emails])
         .catch(catchers![not_found])
         .manage(Arc::clone(&conf))
         .launch();

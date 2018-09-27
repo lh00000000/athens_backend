@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<html>
+<head>
+    <title>How does it feel to be a fiction?</title>
+    <link rel="stylesheet"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css"
+          integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
+          crossorigin="anonymous">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js">
+    </script>
+    <script language="javascript" type="text/javascript">
+        $(function () {
+            var conn = null;
+
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            function connect() {
+                disconnect();
+                var wsUri = (window.location.protocol == 'https:' && 'wss://' || 'ws://') + window.location.hostname + ':' + 3012 + '/ws/';
+                // console.log(wsUri);
+                conn = new WebSocket(wsUri);
+                conn.onopen = async function () {
+                    while (true) {
+                        try {
+                            await sleep(2000);
+                            conn.send("");
+                        } catch (e) {
+                            console.log(e);
+                        }
+                    }
+                };
+                conn.onmessage = function (e) {
+                    var resp = JSON.parse(e.data);
+                    var keys = Object.keys(resp);
+                    for (let i = 0; i < keys.length; i++) {
+                        $('#' + keys[i]).text(resp[keys[i]]);
+                    }
+                };
+                conn.onclose = function () {
+                    conn = null;
+                };
+            }
+
+            function disconnect() {
+                if (conn != null) {
+                    conn.close();
+                    conn = null;
+                }
+            }
+
+            connect();
+        });
+
+
+    </script>
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        .container {
+            font-family: arial, helvetica, sans-serif;
+            font-size: 64px;
+            height: 100%;
+            display: grid;
+            align-items: center;
+        }
+
+        .stat {
+            text-align: center;
+        }
+    </style>
+</head>
+<body style="background-color: black">
+<div style="color: white;" class="container">
+    <div class="row">
+        <div class="col">
+            Neurotic:
+        </div>
+        <div class="col stat" id="Neurotic">0</div>
+    </div>
+    <div class="row">
+        <div class="col">
+            Open:
+        </div>
+        <div class="col stat" id="Open">0</div>
+    </div>
+    <div class="row">
+        <div class="col">
+            Agreeable:
+        </div>
+        <div class="col stat" id="Agreeable">0</div>
+    </div>
+    <div class="row">
+        <div class="col">
+            Extroverted:
+        </div>
+        <div class="col stat" id="Extroverted">0</div>
+    </div>
+    <div class="row">
+        <div class="col">
+            Conscientious:
+        </div>
+        <div class="col stat" id="Conscientious">0</div>
+    </div>
+
+</div>
+
+</body>
+</html>

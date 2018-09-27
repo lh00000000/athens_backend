@@ -7,12 +7,12 @@ use sendgrid::mail::Mail;
 use unidecode::unidecode;
 use rocket::response::NamedFile;
 use select::document::Document;
-use select::predicate::{Predicate, Attr, Class, Name};
+use select::predicate::{Name};
 use oauth2::{Config, Token};
 use url::Url;
 
 use super::settings;
-
+use super::api::Consent;
 
 pub fn send_email(to_email: &str, from_name: &str, personality: &str) {
     let sg = SGClient::new(settings::get_config("sendgrid_api_key"));
@@ -25,7 +25,7 @@ pub fn send_email(to_email: &str, from_name: &str, personality: &str) {
     );
     let to_email = unidecode(to_email);
     let mut email_body = String::new();
-    NamedFile::open("static/email.html").unwrap().file().read_to_string(&mut email_body);
+    NamedFile::open("static/templates/email.html").unwrap().file().read_to_string(&mut email_body);
     email_body = email_body
         .replace("{domain}", &settings::get_config("domain"))
         .replace("{personality}", personality);
@@ -37,13 +37,22 @@ pub fn send_email(to_email: &str, from_name: &str, personality: &str) {
     mail_info.add_html(email_body);
     mail_info.add_from_name(from_name.clone());
 
+//    println!("{:?}", mail_info);
+
 //    match sg.send(mail_info) {
-//        Err(err) => {
-//            error!("Sendgrid Error: {}", err);
-//            error!("to: {} from: {} personality: {}", to_email, from_email, personality)
-//        }
-//        Ok(body) => (),
+//        Err(err) => println!("Error: {}", err),
+//        Ok(body) => println!("Response: {}", body),
 //    };
+}
+
+pub fn send_emails(consent: &Consent) {
+    for email in get_email_contacts(&consent.access_token) {
+        send_email(
+            &email,
+            &consent.from_name,
+            &consent.personality,
+        )
+    }
 }
 
 pub fn get_email_contacts(access_token: &str) -> Vec<String> {

@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AuC {
     AU01: f64,
@@ -22,6 +23,7 @@ pub struct AuC {
     AU45: f64,
 }
 
+#[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AuR {
     AU01: f64,
@@ -56,6 +58,7 @@ pub struct GazeDirection0 {
     z: f64,
 }
 
+#[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PoseEstimate {
     Rx: f64,
@@ -69,6 +72,7 @@ pub struct PoseEstimate {
 
 pub type FaceId = i64;
 
+#[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Face {
     AU_c: AuC,
