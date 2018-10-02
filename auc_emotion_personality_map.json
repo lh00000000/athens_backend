@@ -1,0 +1,50 @@
+{
+  "emotion_personality": {
+    "Happiness": "Open",
+    "Disgust": "Conscientious",
+    "Surprise": "Extroverted",
+    "Fear": "Agreeable",
+    "Sadness": "Agreeable",
+    "Anger": "Neurotic",
+    "Contempt": "Neurotic"
+  },
+  "auc_emotion": {
+    "Happiness": [
+      "AU06",
+      "AU12"
+    ],
+    "Sadness": [
+      "AU01",
+      "AU04",
+      "AU15"
+    ],
+    "Surprise": [
+      "AU01",
+      "AU02",
+      "AU25"
+    ],
+    "Fear": [
+      "AU01",
+      "AU02",
+      "AU04",
+      "AU05",
+      "AU07",
+      "AU20",
+      "AU26"
+    ],
+    "Anger": [
+      "AU04",
+      "AU05",
+      "AU07",
+      "AU23"
+    ],
+    "Contempt": [
+      "AU12",
+      "AU14"
+    ],
+    "Disgust": [
+      "AU09",
+      "AU15"
+    ]
+  }
+}

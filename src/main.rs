@@ -28,6 +28,9 @@ extern crate reqwest;
 extern crate select;
 extern crate url;
 
+extern crate serde;
+extern crate serde_json;
+
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::collections::HashSet;
@@ -43,24 +46,25 @@ mod settings;
 mod logger;
 
 fn main() {
-    let conn = Connection::open("./face.db").unwrap();
-    db::create_db(&conn);
-    let personality_stats = db::get_personality_stats(&conn);
-    for stat in personality_stats {
-        println!("{} {}", stat.0, stat.1);
-    }
-
-    let config = Arc::new(Mutex::new(settings::BackendState {
-        db_conn: conn,
-        seen_faces: HashSet::new(),
-    }));
-
-    logger::set_logging();
+//    let conn = Connection::open("./face.db").unwrap();
+//    db::create_db(&conn);
+//    let personality_stats = db::get_personality_stats(&conn);
+//    for stat in personality_stats {
+//        println!("{} {}", stat.0, stat.1);
+//    }
+//
+//    let config = Arc::new(Mutex::new(settings::BackendState {
+//        db_conn: conn,
+//        seen_faces: HashSet::new(),
+//    }));
+//
+//    logger::set_logging();
 
 //    email::send_email("maksim.levental@gmail.com", "maks", "neurotic");
 //    let token = email::get_access_token();
 //    for email in email::get_email_contacts(&token.access_token) {
 //        println!("{}", email)
 //    }
-    api::start_api(config)
+//    api::start_api(config);
+    face::Face::new().personality();
 }
