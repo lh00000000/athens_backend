@@ -1,4 +1,5 @@
 use std::io::Read;
+use std::collections::HashSet;
 
 use std::path::Path;
 use std::sync::{Mutex, Arc};
@@ -14,9 +15,15 @@ use super::face;
 use super::db;
 use super::email;
 
-use super::settings::BackendState;
+use rusqlite::Connection;
 
-type ServerConfig = Arc<Mutex<BackendState>>;
+pub struct BackendState {
+    pub db_conn: Connection,
+    pub seen_faces: HashSet<face::FaceId>,
+}
+
+type ServerState = Arc<Mutex<BackendState>>;
+
 
 #[get("/")]
 fn index() -> Option<NamedFile> {
@@ -27,6 +34,7 @@ fn index() -> Option<NamedFile> {
 fn map() -> Option<NamedFile> {
     NamedFile::open(Path::new("static/map.html")).ok()
 }
+
 #[get("/stats")]
 fn stats() -> Option<NamedFile> {
     NamedFile::open(Path::new("static/stats.html")).ok()
@@ -34,7 +42,7 @@ fn stats() -> Option<NamedFile> {
 
 
 #[get("/essay/<personality>")]
-fn essay(personality: &RawStr, conf: State<ServerConfig>) -> Json<Value> {
+fn essay(personality: &RawStr, conf: State<ServerState>) -> Json<Value> {
     let conf = &mut conf.lock().expect("get conf");
 
     db::increment_personality(&conf.db_conn, personality.to_string());
@@ -59,7 +67,7 @@ fn essay(personality: &RawStr, conf: State<ServerConfig>) -> Json<Value> {
 }
 
 #[post("/face", format = "application/json", data = "<face_json>")]
-fn new_face(face_json: Json<face::Face>, conf: State<ServerConfig>) -> Json<Value> {
+fn new_face(face_json: Json<face::Face>, conf: State<ServerState>) -> Json<Value> {
     let conf = &mut conf.lock().expect("get conf");
     let face = face_json.into_inner();
     let face_id = face.face_id.clone();
@@ -86,7 +94,7 @@ pub struct Consent {
 }
 
 #[get("/email?<consent>", format = "application/json")]
-fn emails(consent: Consent, conf: State<ServerConfig>) -> Json<Value> {
+fn emails(consent: Consent, conf: State<ServerState>) -> Json<Value> {
     println!("{:?}", consent);
     email::send_emails(&consent);
     Json(json!({ "status": "ok" }))
@@ -102,7 +110,7 @@ fn not_found() -> Json<Value> {
 }
 
 
-fn websocket(conf: ServerConfig) {
+fn websocket(conf: ServerState) {
     let conf_clone = Arc::clone(&conf);
     thread::spawn(|| {
         listen("127.0.0.1:3012", move |out| {
@@ -117,7 +125,7 @@ fn websocket(conf: ServerConfig) {
     });
 }
 
-pub fn start_api(conf: ServerConfig) {
+pub fn start_api(conf: ServerState) {
     websocket(Arc::clone(&conf));
 
     rocket::ignite()
