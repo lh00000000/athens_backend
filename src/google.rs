@@ -42,7 +42,7 @@ pub fn set_service_account_token() -> String {
     access_token.access_token
 }
 
-pub fn get_analytics() {
+pub fn get_analytics() -> String {
     let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
     let access_token = match settings::get_config("google_analytics_token_initialized_at") {
         Some(time) => match now - time.parse::<u64>().unwrap() < 3599 {
@@ -79,5 +79,5 @@ pub fn get_analytics() {
         .send()
         .unwrap();
 
-    println!("{}", analytics_resp.text().unwrap());
+    analytics_resp.text().unwrap()
 }

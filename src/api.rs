@@ -14,8 +14,10 @@ use rocket::http::RawStr;
 use super::face;
 use super::db;
 use super::email;
+use super::google;
 
 use rusqlite::Connection;
+use ws::Message;
 
 pub struct BackendState {
     pub db_conn: Connection,
@@ -115,11 +117,27 @@ fn websocket(conf: ServerState) {
     thread::spawn(|| {
         listen("127.0.0.1:3012", move |out| {
             let conf_clone = Arc::clone(&conf_clone);
-            move |msg| {
-                let db_conn = &conf_clone.lock().expect("get conf").db_conn;
-                let personalities = db::get_personality_stats(db_conn);
-                let serialized_personalities = serde_json::to_string(&personalities).unwrap();
-                out.send(serialized_personalities)
+            move |msg: Message| {
+                match msg.into_text() {
+                    Ok(s) =>
+                        match s.as_ref() {
+                            "map" => {
+                                out.send(google::get_analytics())
+                            }
+                            "personality-stats" => {
+                                let db_conn = &conf_clone.lock().expect("get conf").db_conn;
+                                let personalities = db::get_personality_stats(db_conn);
+                                let serialized_personalities = serde_json::to_string(&personalities).unwrap();
+                                out.send(serialized_personalities)
+                            }
+                            _ => {
+                                out.send("")
+                            }
+                        }
+                    Err(_) => {
+                        out.send("")
+                    }
+                }
             }
         })
     });

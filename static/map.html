@@ -7,51 +7,67 @@
     <meta name="google-signin-client_id"
           content="200863470173-hn5o73tfu2v455v98vc861hovsu8eqcq.apps.googleusercontent.com">
     <meta name="google-signin-scope" content="https://www.googleapis.com/auth/analytics.readonly">
+    <style>
+        .inner {
+            width: 50%;
+            margin: 0 auto;
+            position: relative;
+            height: 100%;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+    </style>
 </head>
 <body>
 
-<!-- The Sign-in button. This will run `queryReports()` on success. -->
-<p class="g-signin2" data-onsuccess="queryReports"></p>
-<button onclick="handleClientLoad()">load map</button>
-<div id="regions_div" style="width: 900px; height: 500px;"></div>
+<button id="mapbutton" onclick="handleClientLoad()">load map</button>
+<div class="outer"></div>
+<div id="regions_div" class="inner"></div>
 
 <script>
-    // Replace with your view ID.
     function handleClientLoad() {
+        var conn = null;
 
-        var VIEW_ID = '181843413';
-
-        // Query the API and print the results to the page.
-        function queryReports() {
-            gapi.client.request({
-                path: '/v4/reports:batchGet',
-                root: 'https://analyticsreporting.googleapis.com/',
-                method: 'POST',
-                body: {
-                    reportRequests: [
-                        {
-                            viewId: VIEW_ID,
-                            dateRanges: [
-                                {
-                                    startDate: '1000daysAgo',
-                                    endDate: 'today'
-                                }
-                            ],
-                            dimensions: [
-                                {
-                                    name: 'ga:country'
-                                }
-                            ]
-                        }
-                    ]
-                }
-            }).then(drawRegionsMap, console.error.bind(console));
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        // function displayResults(response) {
-        //     var formattedJson = JSON.stringify(response.result, null, 2);
-        //     document.getElementById('query-output').value = formattedJson;
-        // }
+        function connect() {
+            disconnect();
+            var wsUri = (window.location.protocol === 'https:' && 'wss://' || 'ws://') + window.location.hostname + ':' + 3012 + '/ws/';
+            // console.log(wsUri);
+            conn = new WebSocket(wsUri);
+            conn.onopen = async function () {
+                document.getElementById('mapbutton').style.display = 'none';
+                conn.send("map");
+                while (true) {
+                    try {
+                        await sleep(60000);
+                        conn.send("map");
+                    } catch (e) {
+                        console.log(e);
+                    }
+                }
+            };
+            conn.onmessage = function (e) {
+                var resp = JSON.parse(e.data);
+                drawRegionsMap(resp);
+            };
+            conn.onclose = function () {
+                conn = null;
+            };
+        }
+
+        function disconnect() {
+            if (conn != null) {
+                conn.close();
+                conn = null;
+            }
+        }
+
 
         google.charts.load('current', {
             'packages': ['geochart'],
@@ -63,7 +79,7 @@
         // google.charts.setOnLoadCallback(drawRegionsMap);
 
         function drawRegionsMap(response) {
-            var countries = response.result.reports[0].data.rows.map(c => [c.dimensions[0], parseInt(c.metrics[0].values[0])]);
+            var countries = response.reports[0].data.rows.map(c => [c.dimensions[0], parseInt(c.metrics[0].values[0])]);
             var data = google.visualization.arrayToDataTable([['Country', 'Popularity']].concat(countries));
 
             var options = {
@@ -71,6 +87,8 @@
                 backgroundColor: '#81d4fa',
                 datalessRegionColor: '#f8bbd0',
                 defaultColor: '#f5f5f5',
+                width: 1024,
+                height: 768
             };
 
             var chart = new google.visualization.GeoChart(document.getElementById('regions_div'));
@@ -78,8 +96,7 @@
             chart.draw(data, options);
         }
 
-        queryReports();
-
+        connect();
     }
 
 </script>

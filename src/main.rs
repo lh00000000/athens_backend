@@ -44,7 +44,6 @@ use std::collections::HashSet;
 
 use rusqlite::Connection;
 
-
 mod face;
 mod db;
 mod email;
@@ -68,10 +67,11 @@ fn main() {
 
     logger::set_logging();
 
-    email::send_email("maksim.levental@gmail.com", "maks", "neurotic");
+//    email::send_email("maksim.levental@gmail.com", "maks", "neurotic");
 //    let token = email::get_access_token();
 //    for email in email::get_email_contacts(&token.access_token) {
 //        println!("{}", email)
 //    }
     api::start_api(config);
+//    google::get_analytics();
 }
