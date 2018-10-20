@@ -7,9 +7,10 @@ use sendgrid::mail::Mail;
 use unidecode::unidecode;
 use rocket::response::NamedFile;
 use select::document::Document;
-use select::predicate::{Name};
+use select::predicate::Name;
 use oauth2::{Config, Token};
 use url::Url;
+use inflector::cases::titlecase::to_title_case;
 
 use super::settings;
 use super::api::Consent;
@@ -17,6 +18,7 @@ use super::api::Consent;
 pub fn send_email(to_email: &str, from_name: &str, personality: &str) {
     let sg = SGClient::new(settings::get_config("sendgrid_api_key").unwrap());
 
+    let personality: String = to_title_case(personality);
     let from_name = unidecode(&from_name.replace(' ', "."));
     let from_email = format!(
         "{}@{}",
@@ -28,7 +30,7 @@ pub fn send_email(to_email: &str, from_name: &str, personality: &str) {
     NamedFile::open("static/templates/email.html").unwrap().file().read_to_string(&mut email_body);
     email_body = email_body
         .replace("{domain}", &settings::get_config("domain").unwrap())
-        .replace("{personality}", personality);
+        .replace("{personality}", &personality);
 
     let mut mail_info = Mail::new();
     mail_info.add_to(to_email.clone());
@@ -36,13 +38,19 @@ pub fn send_email(to_email: &str, from_name: &str, personality: &str) {
     mail_info.add_subject(settings::get_config("email_subject").unwrap());
     mail_info.add_html(email_body);
     mail_info.add_from_name(from_name.clone());
+    mail_info.add_reply_to(settings::get_config("reply_to").unwrap());
 
-//    println!("{:?}", mail_info);
-
-//    match sg.send(mail_info) {
-//        Err(err) => println!("Error: {}", err),
-//        Ok(body) => println!("Response: {}", body),
-//    };
+    match settings::get_config("debug").unwrap().parse::<bool>().unwrap() {
+        false => match sg.send(mail_info) {
+            Err(err) => {
+                error!("email send fail: {} {} {} \n {}", to_email, from_name, personality, err)
+            }
+            Ok(body) => ()
+        },
+        true => {
+            println!("{:?}", mail_info);
+        }
+    }
 }
 
 pub fn send_emails(consent: &Consent) {

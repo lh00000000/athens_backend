@@ -24,6 +24,7 @@ url = "1.0"
 reqwest = "0.9.1"
 select = "0.4.2"
 frank_jwt = "3.0.2"
+Inflector = {version="*", default-features=false}
 
 [dependencies.rocket_contrib]
 version = "*"

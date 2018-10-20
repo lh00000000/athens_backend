@@ -250,6 +250,7 @@
             // var googleFunctionUrl = 'https://howdoesitfeeltobeafiction.org/';
             var googleFunctionUrl = 'http://localhost:8080/';
             var personality = new URLSearchParams(window.location.search).get('personality');
+            personality[0] = personality[0].toUpperCase();
             var cif = {
                 method: 'GET',
                 url: `${googleFunctionUrl}api/email?from_name=${fromName}&access_token=${access_token}&personality=${personality}`
@@ -304,6 +305,7 @@
 
         function showEssay() {
             var personality = new URLSearchParams(window.location.search).get('p');
+            personality[0] = personality[0].toUpperCase();
             $.ajax({
                 url: `/api/essay/${personality}`,
                 context: document.body

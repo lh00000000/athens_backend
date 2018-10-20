@@ -11,6 +11,8 @@ use rocket::State;
 use rocket_contrib::{Json, Value};
 use rocket::http::RawStr;
 
+use inflector::cases::titlecase::to_title_case;
+
 use super::face;
 use super::db;
 use super::email;
@@ -46,7 +48,7 @@ fn stats() -> Option<NamedFile> {
 #[get("/essay/<personality>")]
 fn essay(personality: &RawStr, conf: State<ServerState>) -> Json<Value> {
     let conf = &mut conf.lock().expect("get conf");
-
+    let personality: String = to_title_case(personality);
     db::increment_personality(&conf.db_conn, personality.to_string());
 
     let personality_stats = db::get_personality_stats(&conf.db_conn);
