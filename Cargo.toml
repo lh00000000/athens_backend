@@ -25,6 +25,8 @@ reqwest = "0.9.1"
 select = "0.4.2"
 frank_jwt = "3.0.2"
 Inflector = {version="*", default-features=false}
+csv = "1"
+openssl-probe = "0.1.2"
 
 [dependencies.rocket_contrib]
 version = "*"

@@ -1,6 +1,8 @@
 use std::io::prelude::*;
 use std::net::TcpListener;
 use std::io::BufReader;
+use std::fs::File;
+
 
 use sendgrid::sg_client::SGClient;
 use sendgrid::mail::Mail;
@@ -73,6 +75,16 @@ pub fn get_email_contacts(access_token: &str) -> Vec<String> {
     document.find(Name("gd:email")).map(
         |node| node.attr("address").unwrap().to_string()
     ).collect()
+}
+
+pub fn send_old_emails() {
+    let mut file = File::open("old_responses.csv");
+    let file = File::open("old_responses.csv").unwrap();
+    let mut rdr = csv::Reader::from_reader(file);
+    for result in rdr.records() {
+        let record = result.unwrap();
+        send_email(&record[0], "A Fiction", &record[1])
+    }
 }
 
 //fn get_access_token() -> Token {

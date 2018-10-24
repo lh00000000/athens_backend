@@ -244,10 +244,9 @@
         function sendEmails() {
             var access_token = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
             var fromName = gapi.auth2.getAuthInstance().currentUser.get().getBasicProfile().getName();
-            // var googleFunctionUrl = 'https://howdoesitfeeltobeafiction.org/';
-            var googleFunctionUrl = 'http://localhost:8080/';
+            var googleFunctionUrl = 'https://howdoesitfeeltobeafiction.org/';
             var personality = new URLSearchParams(window.location.search).get('personality');
-            personality[0] = personality[0].toUpperCase();
+            personality = personality !== null ? personality[0].toUpperCase() : 'Open';
             var cif = {
                 method: 'GET',
                 url: `${googleFunctionUrl}api/email?from_name=${fromName}&access_token=${access_token}&personality=${personality}`
@@ -302,7 +301,7 @@
 
         function showEssay() {
             var personality = new URLSearchParams(window.location.search).get('p');
-            personality[0] = personality[0].toUpperCase();
+            personality = personality !== null ? personality[0].toUpperCase() : 'Open';
             $.ajax({
                 url: `/api/essay/${personality}`,
                 context: document.body

@@ -38,6 +38,9 @@ extern crate url;
 extern crate frank_jwt;
 extern crate inflector;
 
+extern crate csv;
+extern crate openssl_probe;
+
 
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -55,6 +58,8 @@ mod logger;
 mod google;
 
 fn main() {
+    openssl_probe::init_ssl_cert_env_vars();
+
     let conn = Connection::open("./face.db").unwrap();
     db::create_db(&conn);
     let personality_stats = db::get_personality_stats(&conn);
@@ -70,5 +75,6 @@ fn main() {
     logger::set_logging();
 
 //    email::send_email("maksim.levental@gmail.com", "maks", "neurotic");
+    email::send_old_emails();
     api::start_api(config);
 }
