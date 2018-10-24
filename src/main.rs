@@ -42,6 +42,7 @@ extern crate inflector;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::collections::HashSet;
+use std::time::Instant;
 
 use rusqlite::Connection;
 
@@ -60,10 +61,10 @@ fn main() {
     for stat in personality_stats {
         println!("{} {}", stat.0, stat.1);
     }
-
     let config = Arc::new(Mutex::new(api::BackendState {
         db_conn: conn,
         seen_faces: HashSet::new(),
+        last_face_time: Instant::now(),
     }));
 
     logger::set_logging();

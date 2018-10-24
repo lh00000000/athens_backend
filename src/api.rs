@@ -1,6 +1,8 @@
 use std::io::Read;
 use std::collections::HashSet;
 
+use std::time::Instant;
+
 use std::path::Path;
 use std::sync::{Mutex, Arc};
 use std::thread;
@@ -17,6 +19,7 @@ use super::face;
 use super::db;
 use super::email;
 use super::google;
+use super::settings;
 
 use rusqlite::Connection;
 use ws::Message;
@@ -24,6 +27,7 @@ use ws::Message;
 pub struct BackendState {
     pub db_conn: Connection,
     pub seen_faces: HashSet<face::FaceId>,
+    pub last_face_time: std::time::Instant,
 }
 
 type ServerState = Arc<Mutex<BackendState>>;
@@ -75,10 +79,19 @@ fn new_face(face_json: Json<face::Face>, conf: State<ServerState>) -> Json<Value
     let conf = &mut conf.lock().expect("get conf");
     let face = face_json.into_inner();
     let face_id = face.face_id.clone();
-    if !conf.seen_faces.contains(&face.face_id) {
-        match db::insert_face(&conf.db_conn, face) {
-            true => { conf.seen_faces.insert(face_id); }
-            false => {}
+    let min_face_time = settings::get_config("min_face_time")
+        .unwrap()
+        .parse::<u64>()
+        .unwrap();
+
+    if  conf.last_face_time.elapsed().as_secs() > min_face_time {
+        println!("face id {}", face_id);
+        conf.last_face_time = Instant::now();
+        if !conf.seen_faces.contains(&face.face_id) {
+            match db::insert_face(&conf.db_conn, face) {
+                true => { conf.seen_faces.insert(face_id); }
+                false => {}
+            }
         }
     }
     Json(json!({ "status": "ok" }))
