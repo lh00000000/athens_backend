@@ -48,6 +48,10 @@ fn stats() -> Option<NamedFile> {
     NamedFile::open(Path::new("static/stats.html")).ok()
 }
 
+#[get("/favicon.ico")]
+fn favicon() -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/favicon.ico")).ok()
+}
 
 #[get("/essay/<personality>")]
 fn essay(personality: &RawStr, conf: State<ServerState>) -> Json<Value> {
@@ -162,7 +166,7 @@ pub fn start_api(conf: ServerState) {
     websocket(Arc::clone(&conf));
 
     rocket::ignite()
-        .mount("/", routes![index, stats, map])
+        .mount("/", routes![index, stats, map, favicon])
         .mount("/api", routes![new_face, essay, emails])
         .catch(catchers![not_found])
         .manage(Arc::clone(&conf))
