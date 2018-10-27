@@ -36,11 +36,11 @@ pub fn send_email(to_email: &str, from_name: &str, personality: &str) {
 
     let mut mail_info = Mail::new();
     mail_info.add_to(to_email.clone());
-    mail_info.add_from(from_name.clone());
+    mail_info.add_from(from_email.clone());
     mail_info.add_subject(settings::get_config("email_subject").unwrap());
     mail_info.add_html(email_body);
     mail_info.add_from_name(from_name.clone());
-    mail_info.add_reply_to(settings::get_config("reply_to").unwrap());
+//    mail_info.add_reply_to(settings::get_config("reply_to").unwrap());
 
     match settings::get_config("debug").unwrap().parse::<bool>().unwrap() {
         false => match sg.send(mail_info) {
