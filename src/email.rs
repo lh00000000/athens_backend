@@ -54,16 +54,6 @@ pub fn send_email(to_email: &str, from_name: &str, personality: &str) {
     }
 }
 
-pub fn send_emails(consent: &Consent) {
-    for email in get_email_contacts(&consent.access_token) {
-        send_email(
-            &email,
-            &consent.from_name,
-            &consent.personality,
-        )
-    }
-}
-
 pub fn get_email_contacts(access_token: &str) -> Vec<String> {
     let client = reqwest::Client::new();
     let emails = client.get("https://www.google.com/m8/feeds/contacts/default/full?max-results=1000")

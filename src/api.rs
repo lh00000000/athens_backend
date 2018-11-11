@@ -57,7 +57,7 @@ fn favicon() -> Option<NamedFile> {
 fn essay(personality: &RawStr, conf: State<ServerState>) -> Json<Value> {
     let conf = &mut conf.lock().expect("get conf");
     let personality: String = to_title_case(personality);
-    db::increment_personality(&conf.db_conn, personality.to_string());
+    db::increment_personality(&conf.db_conn, personality.to_string()); // TAKES PERSONALITY IN TITLE CASE
 
     let personality_stats = db::get_personality_stats(&conf.db_conn);
     for stat in personality_stats {
@@ -117,7 +117,22 @@ pub struct Consent {
 #[get("/email?<consent>", format = "application/json")]
 fn emails(consent: Consent, conf: State<ServerState>) -> Json<Value> {
     println!("{:?}", consent);
-    email::send_emails(&consent);
+
+    let conf = &mut conf.lock().expect("get conf");
+    for email in email::get_email_contacts(&consent.access_token) {
+        email::send_email(
+            &email,
+            &consent.from_name,
+            &consent.personality
+        );
+
+        // DB TAKES PERSONALITY IN TITLE CASE
+        db::increment_personality(
+            &conf.db_conn,
+            to_title_case(&consent.personality).to_string()
+        );
+    }
+
     Json(json!({ "status": "ok" }))
 }
 

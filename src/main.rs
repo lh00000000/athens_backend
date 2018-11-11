@@ -74,7 +74,9 @@ fn main() {
 
     logger::set_logging();
 
-//    email::send_email("maksim.levental@gmail.com", "maks", "neurotic");
-    email::send_old_emails();
+    // email::send_email("maksim.levental@gmail.com", "maks", "neurotic");
+    // email::send_email("lh00000000@gmail.com", "lh", "neurotic");
+    // email::send_old_emails();
+
     api::start_api(config);
 }
