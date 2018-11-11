@@ -31,8 +31,7 @@ pub fn send_email(to_email: &str, from_name: &str, personality: &str) {
     let mut email_body = String::new();
     NamedFile::open("static/templates/email.html").unwrap().file().read_to_string(&mut email_body);
     email_body = email_body
-        .replace("{domain}", &settings::get_config("domain").unwrap())
-        .replace("{personality}", &personality);
+        .replace("{email_href}", &settings::get_config("email_href").unwrap());
 
     let mut mail_info = Mail::new();
     mail_info.add_to(to_email.clone());
