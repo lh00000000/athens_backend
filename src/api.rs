@@ -149,7 +149,7 @@ fn not_found() -> Json<Value> {
 fn websocket(conf: ServerState) {
     let conf_clone = Arc::clone(&conf);
     thread::spawn(|| {
-        listen("127.0.0.1:3012", move |out| {
+        listen("0.0.0.0:3012", move |out| {
             let conf_clone = Arc::clone(&conf_clone);
             move |msg: Message| {
                 match msg.into_text() {
