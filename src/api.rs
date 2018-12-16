@@ -101,12 +101,6 @@ fn new_face(face_json: Json<face::Face>, conf: State<ServerState>) -> Json<Value
     Json(json!({ "status": "ok" }))
 }
 
-//#[get("/face/<id>", format = "application/json")]
-//fn get(id: face::FaceId, conf: State<ServerConfig>) -> Option<Json<db::FaceEvent>> {
-//    let db_conn = &conf.lock().expect("get conf").db_conn;
-//    Some(Json(db::get_face(db_conn, id)))
-//}
-
 #[derive(FromForm, Debug)]
 pub struct Consent {
     pub from_name: String,
